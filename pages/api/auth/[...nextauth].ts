@@ -1,5 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import { Session } from "next-auth";
+import { JWT } from "next-auth/jwt";
 
 export const authOptions = {
   providers: [
@@ -12,7 +14,7 @@ export const authOptions = {
   // We'll use this to get the user's email to tie to the 'created_by' column.
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       // Pass the user's email to the session object
       // This will be available on the frontend and in your API routes
       if (session.user && token?.email) {

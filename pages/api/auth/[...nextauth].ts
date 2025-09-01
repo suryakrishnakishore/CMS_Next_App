@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
-export default NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -10,6 +10,7 @@ export default NextAuth({
   ],
   // This is a crucial callback. It allows you to add information to the session.
   // We'll use this to get the user's email to tie to the 'created_by' column.
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async session({ session, token }) {
       // Pass the user's email to the session object
@@ -24,4 +25,6 @@ export default NextAuth({
   pages: {
     signIn: '/admin/login',
   },
-});
+};
+
+export default NextAuth(authOptions);

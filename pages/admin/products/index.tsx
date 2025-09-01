@@ -16,14 +16,14 @@ interface Product {
   is_deleted: boolean;
 }
 
-const AllProductsDashboard = () => {
+const MyProductsDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeleted, setShowDeleted] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // Redirect unauthenticated users
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/admin/login');
@@ -32,30 +32,23 @@ const AllProductsDashboard = () => {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      const fetchAllProducts = async () => {
+      const fetchMyProducts = async () => {
         try {
-          const response = await axios.get('/api/products');
+          // This API call fetches only the products of the logged-in user
+          const response = await axios.get('/api/products/my-products');
           setProducts(response.data);
         } catch (error) {
-          console.error('Error fetching all products:', error);
+          console.error('Error fetching my products:', error);
         } finally {
           setLoading(false);
         }
       };
-      fetchAllProducts();
+      fetchMyProducts();
     }
   }, [status]);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/admin/login' });
-  };
-
-  const nonDeletedProducts = products.filter(p => !p.is_deleted);
-  const deletedProducts = products.filter(p => p.is_deleted);
-  const displayedProducts = showDeleted ? deletedProducts : nonDeletedProducts;
-
-  const handleToggleDeleted = () => {
-    setShowDeleted(!showDeleted);
   };
 
   const handleRowClick = (product: Product) => {
@@ -68,6 +61,7 @@ const AllProductsDashboard = () => {
 
   const handleEdit = () => {
     if (selectedProduct) {
+      // Navigate to the edit page with the product ID
       router.push(`/admin/products/edit/${selectedProduct.product_id}`);
       closeModal();
     }
@@ -77,32 +71,13 @@ const AllProductsDashboard = () => {
     if (selectedProduct && confirm(`Are you sure you want to soft-delete the product "${selectedProduct.product_name}"?`)) {
       try {
         await axios.delete(`/api/products/${selectedProduct.product_id}`);
+        // Refresh the product list after a successful deletion
         setProducts(products.filter(p => p.product_id !== selectedProduct.product_id));
         closeModal();
       } catch (error) {
         console.error('Error deleting product:', error);
         alert('Failed to delete product.');
       }
-    }
-  };
-  
-  const handleRestore = async () => {
-    if (selectedProduct && confirm(`Are you sure you want to restore the product "${selectedProduct.product_name}"?`)) {
-        try {
-            await axios.put(`/api/products/${selectedProduct.product_id}`, {
-                ...selectedProduct,
-                is_deleted: false,
-            });
-            setProducts(products.map(p =>
-                p.product_id === selectedProduct.product_id
-                    ? { ...p, is_deleted: false }
-                    : p
-            ));
-            closeModal();
-        } catch (error) {
-            console.error('Error restoring product:', error);
-            alert('Failed to restore product.');
-        }
     }
   };
 
@@ -118,21 +93,20 @@ const AllProductsDashboard = () => {
     <div className="min-h-screen bg-gray-100 font-sans">
       {/* Navigation Bar */}
       <nav className="bg-white shadow p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">All Products</h1>
+        <h1 className="text-2xl font-bold text-gray-800">My Products</h1>
         <div className="flex items-center space-x-4">
           <span className="text-gray-600">Welcome, {session?.user?.name}!</span>
           <button
-            onClick={handleToggleDeleted}
-            className="px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-300
-            bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => router.push('/admin/new')}
+            className="px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 transition duration-300"
           >
-            {showDeleted ? 'Hide Deleted Products' : 'Show Deleted Products'}
+            Create New Product
           </button>
           <button
-            onClick={() => router.push('/admin/products')}
+            onClick={() => router.push('/admin')}
             className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
           >
-            My Products
+            View All Products
           </button>
           <button
             onClick={handleLogout}
@@ -148,21 +122,24 @@ const AllProductsDashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
           {loading ? (
             <p className="text-center text-gray-500">Loading products...</p>
-          ) : displayedProducts.length > 0 ? (
+          ) : products.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full table-fixed divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {displayedProducts.map((product, index) => (
-                    <tr key={product.product_id} className={index % 2 === 0 ? 'bg-white hover:bg-gray-100' : 'bg-gray-50 hover:bg-gray-100'} onClick={() => handleRowClick(product)}>
+                  {products.map((product, index) => (
+                    <tr
+                      key={product.product_id}
+                      className={index % 2 === 0 ? 'bg-white cursor-pointer hover:bg-gray-100' : 'bg-gray-50 cursor-pointer hover:bg-gray-100'}
+                      onClick={() => handleRowClick(product)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.product_id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.product_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-sm overflow-hidden text-ellipsis">{product.product_desc}</td>
@@ -175,19 +152,13 @@ const AllProductsDashboard = () => {
                           {product.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.created_by}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-center text-gray-500">
-              {showDeleted
-                ? 'No deleted products found.'
-                : 'No products found.'
-              }
-            </p>
+            <p className="text-center text-gray-500">You have no products yet. Start by adding a new one!</p>
           )}
         </div>
       </main>
@@ -199,39 +170,25 @@ const AllProductsDashboard = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Product Details</h2>
               <div className="flex items-center space-x-2">
-                {!selectedProduct.is_deleted ? (
-                  <button
-                    onClick={handleEdit}
-                    className="p-2 text-blue-600 hover:text-blue-900 transition duration-300"
-                    title="Edit Product"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                      <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                ) : null}
-                {!selectedProduct.is_deleted ? (
-                  <button
-                    onClick={handleDelete}
-                    className="p-2 text-red-600 hover:text-red-900 transition duration-300"
-                    title="Delete Product"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleRestore}
-                    className="p-2 text-green-600 hover:text-green-900 transition duration-300"
-                    title="Restore Product"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v2a2 2 0 002 2h4l-3 3 1.5 1.5L9 8.25V18h2V8.25l4.5-4.5L16 2l-3 3h4a2 2 0 002-2V4a2 2 0 00-2-2H4z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                )}
+                <button
+                  onClick={handleEdit}
+                  className="p-2 text-blue-600 hover:text-blue-900 transition duration-300"
+                  title="Edit Product"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                    <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-2 text-red-600 hover:text-red-900 transition duration-300"
+                  title="Delete Product"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
                 <button
                   className="ml-4 text-gray-400 hover:text-gray-600 text-3xl font-light"
                   onClick={closeModal}
@@ -282,10 +239,6 @@ const AllProductsDashboard = () => {
                 <span className="font-semibold">Updated At:</span>
                 <span>{selectedProduct.updated_at ? new Date(selectedProduct.updated_at).toLocaleString() : 'N/A'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Deleted:</span>
-                <span>{selectedProduct.is_deleted ? 'Yes' : 'No'}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -294,4 +247,4 @@ const AllProductsDashboard = () => {
   );
 };
 
-export default AllProductsDashboard;
+export default MyProductsDashboard;

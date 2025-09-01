@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]'; // adjust path if needed
 import { query } from '../../../lib/db';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     console.log("Request Method", req.method);
 
     const session = await getServerSession(req, res, authOptions);

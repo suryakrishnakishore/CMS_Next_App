@@ -122,6 +122,12 @@ const AllProductsDashboard = () => {
         <div className="flex items-center space-x-4">
           <span className="text-gray-600">Welcome, {session?.user?.name}!</span>
           <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 transition duration-300"
+          >
+            Go to Live Website
+          </button>
+          <button
             onClick={handleToggleDeleted}
             className="px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-300
             bg-purple-600 hover:bg-purple-700 text-white"

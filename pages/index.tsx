@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useRouter } from 'next/router';
 
 // Updated interface to include all columns from the Products table
 interface Product {
@@ -15,6 +16,7 @@ interface Product {
 }
 
 const HomePage = () => {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,11 +45,17 @@ const HomePage = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-8 bg-gray-100 min-h-screen font-sans">
-      <header className="mb-8 text-center">
+      <header className="mb-8 text-center flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">Our Products</h1>
-        <p className="text-gray-600 mt-2">Check out our latest and greatest products.</p>
+        <button
+          onClick={() => router.push('/admin')}
+          className="px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-gray-700 transition duration-300"
+        >
+          Go to Admin
+        </button>
       </header>
-      <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <p className="text-gray-600 mt-2 text-center">Check out our latest and greatest products.</p>
+      <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
         {products.length > 0 ? (
           products.map((product) => (
             <div key={product.product_id} className="bg-white p-6 rounded-xl shadow-md transform transition-transform duration-300 hover:scale-105">
